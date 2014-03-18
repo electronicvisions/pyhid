@@ -325,6 +325,9 @@ bool hid_libusb::enumerateHID(const uint16_t uiVendorID,
                           pCurrent = pNext;
 
                           pCurrent->pNext = 0;
+                          pCurrent->szManufacturer = 0;
+                          pCurrent->szSerial = 0;
+                          pCurrent->szProduct = 0;
                           pCurrent->uiBusNumber = libusb_get_bus_number(pDev);
                           pCurrent->uiDeviceAddress =
                             libusb_get_device_address(pDev);
@@ -333,9 +336,6 @@ bool hid_libusb::enumerateHID(const uint16_t uiVendorID,
                           iResult = libusb_open(pDev, &pDevHandle);
                           if ( iResult >= 0 )
                             {
-                              pCurrent->szManufacturer = 0;
-                              pCurrent->szSerial = 0;
-                              pCurrent->szProduct = 0;
                               if (desc.iSerialNumber > 0 )
                                 pCurrent->szSerial =
                                   self_type_t::getUSBString(pDevHandle,
