@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------
 //
-// Copyright (c) 2013 TU-Dresden  All rights reserved.
+// Copyright (c) 2014 TU-Dresden  All rights reserved.
 //
 // Unless otherwise stated, the software on this site is distributed
 // in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -42,6 +42,15 @@
 
 #include <stdint.h>
 #include <cstddef>
+#include <string>
+
+#define HID_LIBUSB_INVALID_ARGS   -1000
+#define HID_LIBUSB_NO_DEVICE      -1001
+#define HID_LIBUSB_NO_DEVICE_OPEN -1002
+#define HID_LIBUSB_READ_ERROR     -1003
+#define HID_LIBUSB_NO_UDEV        -1004
+#define HID_LIBUSB_UDEV_MON_ERROR -1005
+#define HID_LIBUSB_UDEV_TIMEOUT   -1006
 
 typedef struct hid_device_info
 {
@@ -108,7 +117,7 @@ public:
 
   hid_libusb();
   virtual ~hid_libusb();
-  virtual bool enumerateHID(const uint16_t, const uint16_t);
+  virtual int enumerateHID(const uint16_t, const uint16_t);
   virtual void freeHIDEnumeration();
   virtual int writeHID(const uint8_t *, size_t, const bool bFeature = false);
   virtual int readHID(uint8_t *puiData, size_t uiLength,
@@ -118,7 +127,8 @@ public:
   virtual int openHID(const uint16_t, const uint16_t, const char *szSerial = 0);
   virtual void closeHID();
   virtual int openHIDDevice(const hid_device_info_t *);
-  virtual bool waitDeviceReAdd(const uint16_t uiTimeout = 0);
+  virtual int waitDeviceReAdd(const uint16_t uiTimeout = 0);
+  static void getErrorString(const int, std::string &);
 };
 
 #endif

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------
 //
-// Copyright (c) 2013 TU-Dresden  All rights reserved.
+// Copyright (c) 2014 TU-Dresden  All rights reserved.
 //
 // Unless otherwise stated, the software on this site is distributed
 // in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -89,7 +89,6 @@ char *hid_libusb::getUSBString(libusb_device_handle *pDevHandle,
 
 bool hid_libusb::findUdevPath()
 {
-
   if ( this->m_szUdevPath )
     delete [] this->m_szUdevPath;
 
@@ -260,22 +259,23 @@ void hid_libusb::cleanupMutex(void *pParam)
   pthread_mutex_unlock(&pThis->m_Mutex);
 }
 
-bool hid_libusb::enumerateHID(const uint16_t uiVendorID,
-                              const uint16_t uiProductID)
+int hid_libusb::enumerateHID(const uint16_t uiVendorID,
+                             const uint16_t uiProductID)
 {
   libusb_device **ppList;
 
   if ( ! self_type_t::m_pContext )
     {
-      if ( libusb_init(&self_type_t::m_pContext) )
-        return false;
+      int iResult = libusb_init(&self_type_t::m_pContext);
+      if ( iResult )
+        return iResult;
       atexit(self_type_t::freeHID);
     }
 
   ssize_t iDeviceCount = libusb_get_device_list(self_type_t::m_pContext,
                                                 &ppList);
-  if ( iDeviceCount < 0)
-    return false;
+  if ( iDeviceCount < 0 )
+    return iDeviceCount;
 
   if ( this->m_pDevices )
     this->freeHIDEnumeration();
@@ -365,7 +365,7 @@ bool hid_libusb::enumerateHID(const uint16_t uiVendorID,
     }
   libusb_free_device_list(ppList, 1);
 
-  return true;
+  return 0;
 }
 
 void hid_libusb::freeHIDEnumeration()
@@ -390,7 +390,7 @@ int hid_libusb::writeHID(const uint8_t *puiData, size_t uiLength,
                          const bool bFeature)
 {
   if ( ! this->m_bOpenDevice )
-    return -1;
+    return HID_LIBUSB_NO_DEVICE_OPEN;
 
   const uint8_t uiReportNumber = puiData[0];
   bool bSkippedReportID = false;
@@ -417,7 +417,7 @@ int hid_libusb::writeHID(const uint8_t *puiData, size_t uiLength,
                                             1000);
 
       if ( iResult < 0 )
-        return -1;
+        return iResult;
 
       if ( bSkippedReportID )
         return uiLength++;
@@ -433,7 +433,7 @@ int hid_libusb::writeHID(const uint8_t *puiData, size_t uiLength,
                                           1000);
 
   if ( iResult < 0 )
-    return -1;
+    return iResult;
 
   if ( bSkippedReportID )
     iActualLength++;
@@ -445,9 +445,9 @@ int hid_libusb::readHID(uint8_t *puiData, size_t uiLength,
                         int iMilliseconds)
 {
   if ( ! this->m_bOpenDevice )
-    return -1;
+    return HID_LIBUSB_NO_DEVICE_OPEN;
 
-  int iBytesRead = -1;
+  int iBytesRead = HID_LIBUSB_READ_ERROR;
 
   pthread_mutex_lock(&this->m_Mutex);
   pthread_cleanup_push(&self_type_t::cleanupMutex, this);
@@ -508,7 +508,7 @@ int hid_libusb::readFeature(uint8_t *puiData, size_t uiLength,
                             int iMilliseconds)
 {
   if ( ! this->m_bOpenDevice )
-    return -1;
+    return HID_LIBUSB_NO_DEVICE_OPEN;
 
   int iResult = libusb_control_transfer(this->m_pDeviceHandle,
                                         LIBUSB_ENDPOINT_IN |
@@ -522,17 +522,15 @@ int hid_libusb::readFeature(uint8_t *puiData, size_t uiLength,
                                         iMilliseconds
                                         );
 
-  if ( iResult < 0 )
-    return -1;
-
   return iResult;
 }
 
 int hid_libusb::openHID(const uint16_t uiVendorID, const uint16_t uiProductID,
                         const char *szSerial)
 {
-  if ( ! this->enumerateHID(uiVendorID, uiProductID) )
-    return -1;
+  int iResult = this->enumerateHID(uiVendorID, uiProductID);
+  if ( iResult < 0 )
+    return iResult;
 
   hid_device_info_t *pDevice = this->m_pDevices;
   while ( pDevice )
@@ -547,7 +545,7 @@ int hid_libusb::openHID(const uint16_t uiVendorID, const uint16_t uiProductID,
       pDevice = pDevice->pNext;
     }
 
-  int iResult = -1;
+  iResult = HID_LIBUSB_NO_DEVICE;
   if ( pDevice )
     iResult = this->openHIDDevice(pDevice);
 
@@ -588,12 +586,13 @@ void hid_libusb::closeHID()
 int hid_libusb::openHIDDevice(const hid_device_info_t *pDeviceToOpen)
 {
   if ( ! pDeviceToOpen )
-    return -1;
+    return HID_LIBUSB_INVALID_ARGS;
 
   if ( ! self_type_t::m_pContext )
     {
-      if ( libusb_init(&self_type_t::m_pContext) )
-        return -1;
+      int iResult = libusb_init(&self_type_t::m_pContext);
+      if ( iResult < 0 )
+        return iResult;
       atexit(self_type_t::freeHID);
     }
 
@@ -613,6 +612,7 @@ int hid_libusb::openHIDDevice(const hid_device_info_t *pDeviceToOpen)
   libusb_device *pDev;
   int d = 0;
   bool bGoodOpen = false;
+  int iResult = HID_LIBUSB_NO_DEVICE;
   while ( ( pDev = ppList[d++] ) )
     {
       struct libusb_device_descriptor desc;
@@ -645,7 +645,7 @@ int hid_libusb::openHIDDevice(const hid_device_info_t *pDeviceToOpen)
                        pDeviceToOpen->iInterfaceNumber ==
                        pInterfaceDesc->bInterfaceNumber )
                     {
-                      int iResult = libusb_open(pDev, &this->m_pDeviceHandle);
+                      iResult = libusb_open(pDev, &this->m_pDeviceHandle);
                       if ( iResult < 0 )
                         break;
                       bGoodOpen = true;
@@ -743,7 +743,7 @@ int hid_libusb::openHIDDevice(const hid_device_info_t *pDeviceToOpen)
   pthread_cond_destroy(&this->m_Condition);
   pthread_mutex_destroy(&this->m_Mutex);
 
-  return -1;
+  return iResult;
 }
 
 void hid_libusb::freeHID()
@@ -752,20 +752,20 @@ void hid_libusb::freeHID()
     libusb_exit(self_type_t::m_pContext);
 }
 
-bool hid_libusb::waitDeviceReAdd(const uint16_t uiTimeout)
+int hid_libusb::waitDeviceReAdd(const uint16_t uiTimeout)
 {
   if ( !this->m_szUdevPath || !this->m_pUdev )
-    return false;
+    return HID_LIBUSB_NO_UDEV;
 
   struct udev_monitor *pMon = udev_monitor_new_from_netlink(this->m_pUdev,
                                                             "udev");
   if ( !pMon )
-    return false;
+    return HID_LIBUSB_UDEV_MON_ERROR;
 
   if ( udev_monitor_filter_add_match_subsystem_devtype(pMon, "usb", 0) < 0 )
     {
       udev_monitor_unref(pMon);
-      return 1;
+      return 0;
     }
   udev_monitor_enable_receiving(pMon);
 
@@ -796,7 +796,7 @@ bool hid_libusb::waitDeviceReAdd(const uint16_t uiTimeout)
                 {
                   const char *szPath = udev_device_get_syspath(pDev);
                   if ( !strcmp(szPath, this->m_szUdevPath) )
-                    return true;
+                    return 0;
                 }
             }
         }
@@ -813,10 +813,51 @@ bool hid_libusb::waitDeviceReAdd(const uint16_t uiTimeout)
       if ( uiTimeToRun )
         {
           if ( iTime >= uiTimeToRun )
-            return false;
+            return HID_LIBUSB_UDEV_TIMEOUT;
           uiTimeToRun -= iTime;
         }
     }
 
-  return true;
+  return 0;
+}
+
+void hid_libusb::getErrorString(const int iError,
+                                std::string &szError)
+{
+  if ( iError >= LIBUSB_ERROR_OTHER )
+    {
+      szError = "libusb: ";
+      szError += libusb_strerror(static_cast<libusb_error>(iError));
+      szError += ".";
+    }
+  else
+    {
+      szError = "hid: ";
+      switch ( iError )
+        {
+        case HID_LIBUSB_INVALID_ARGS :
+          szError += "Invalid arguments supplied.";
+          break;
+        case HID_LIBUSB_NO_DEVICE :
+          szError += "No matching HID device found.";
+          break;
+        case HID_LIBUSB_NO_DEVICE_OPEN :
+          szError += "No HID device open to perform requested operation.";
+          break;
+        case HID_LIBUSB_READ_ERROR :
+          szError += "Generic HID read error occured.";
+          break;
+        case HID_LIBUSB_NO_UDEV :
+          szError += "Udev or the device Udev path is not available.";
+          break;
+        case HID_LIBUSB_UDEV_MON_ERROR :
+          szError += "Failed to create an Udev monitor.";
+          break;
+        case HID_LIBUSB_UDEV_TIMEOUT :
+          szError += "Waiting for Udev timed out.";
+          break;
+        default :
+          szError += "Unknown error.";
+        }
+    }
 }

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------
 //
-// Copyright (c) 2013 TU-Dresden  All rights reserved.
+// Copyright (c) 2014 TU-Dresden  All rights reserved.
 //
 // Unless otherwise stated, the software on this site is distributed
 // in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -39,6 +39,9 @@
 // ----------------------------------------------------------------
 #include "CXX/Objects.hxx"
 #include "CXX/Extensions.hxx"
+#include "pyhid.hpp"
+
+static pyhid_module *pPyHID;
 
 #include "hid_libusb.hpp"
 
@@ -59,10 +62,69 @@ namespace Py
   };
 }
 
+class HIDError
+{
+private:
+  Py::String m_message;
+  Py::Int    m_code;
+  Py::Object m_exception_arg;
+public:
+  HIDError(const int err, const std::string& reason)
+    : m_message(Py::String(reason)),
+      m_code(Py::Int(err)),
+      m_exception_arg()
+  {
+    Py::Tuple arg_list(2);
+    arg_list[0] = m_message;
+    arg_list[1] = m_code;
+    m_exception_arg = arg_list;
+  }
+
+  HIDError(const HIDError &other)
+    : m_message(other.m_message),
+      m_code(other.m_code),
+      m_exception_arg(other.m_exception_arg)
+  {
+  }
+
+  Py::Object &pythonExceptionArg()
+  {
+    return m_exception_arg;
+  }
+
+};
+
 inline static Py::List::size_type getArgCount(const Py::Tuple args,
                                               const Py::Dict kwds)
 {
   return args.length() + kwds.length();
+}
+
+static void genErrorMessage(const char *szFunc,
+                            const char *szMsg,
+                            const int iError,
+                            std::string &szError)
+{
+  if ( !szFunc && !szMsg )
+    hid_libusb::getErrorString(iError, szError);
+  else
+    {
+      std::string message;
+      hid_libusb::getErrorString(iError, message);
+      if ( szFunc )
+        {
+          szError = szFunc;
+          szError += "() ";
+        }
+      if ( szMsg )
+        {
+          szError += szMsg;
+          szError += "(";
+        }
+      szError += message;
+      if ( szMsg )
+        szError += ")";
+    }
 }
 
 static void addDefaultArg(const std::string &funcname,
@@ -137,6 +199,9 @@ class pyhidaccess: public Py::PythonClass<pyhidaccess>
 {
 private :
   Py::String m_value;
+
+protected :
+
   hid_libusb m_hidDevice;
 
   Py::Object pyhidaccess_openHID(const Py::Tuple &args, const Py::Dict &kwds)
@@ -153,8 +218,14 @@ private :
     Py::Long vid(d["vid"]);
     Py::Long pid(d["pid"]);
 
-    if ( m_hidDevice.openHID(long(vid), long(pid)) < 0 )
-      throw Py::IOError("openHID() failed to open HID device.");
+    int iResult = m_hidDevice.openHID(long(vid), long(pid));
+    if ( iResult < 0 )
+      {
+        std::string szError;
+        genErrorMessage("openHID", 0, iResult, szError);
+        throw Py::Exception(pPyHID->m_HidError,
+                            HIDError(iResult, szError).pythonExceptionArg());
+      }
 
     return Py::None();
   }
@@ -183,8 +254,12 @@ private :
     delete [] puiData;
 
     if ( iResult < 0 )
-      throw Py::IOError("writeHID() failed to write to HID device.");
-
+      {
+        std::string szError;
+        genErrorMessage("writeHID", 0, iResult, szError);
+        throw Py::Exception(pPyHID->m_HidError,
+                            HIDError(iResult, szError).pythonExceptionArg());
+      }
     return Py::Long(iResult);
   }
   PYCXX_KEYWORDS_METHOD_DECL(pyhidaccess, pyhidaccess_writeHID)
@@ -215,7 +290,12 @@ private :
     delete [] puiData;
 
     if ( iResult < 0 )
-      throw Py::IOError("writeFeature() failed to write to HID device.");
+      {
+        std::string szError;
+        genErrorMessage("writeFeature", 0, iResult, szError);
+        throw Py::Exception(pPyHID->m_HidError,
+                            HIDError(iResult, szError).pythonExceptionArg());
+      }
 
     return Py::Long(iResult);
   }
@@ -243,7 +323,11 @@ private :
     if ( iResult < 0 )
       {
         delete [] puiData;
-        throw Py::IOError("readHID() failed to read from HID device.");
+
+        std::string szError;
+        genErrorMessage("readHID", 0, iResult, szError);
+        throw Py::Exception(pPyHID->m_HidError,
+                            HIDError(iResult, szError).pythonExceptionArg());
       }
 
     Py::List list(iResult);
@@ -275,16 +359,20 @@ private :
     uint8_t *puiData = new uint8_t[long(size)];
     puiData[0] = long(id);
 
-    int result = m_hidDevice.readFeature(puiData, long(size));
+    int iResult = m_hidDevice.readFeature(puiData, long(size));
 
-    if ( result < 0 )
+    if ( iResult < 0 )
       {
         delete [] puiData;
-        throw Py::IOError("readFeature() failed to read from HID device.");
+
+        std::string szError;
+        genErrorMessage("readFeature", 0, iResult, szError);
+        throw Py::Exception(pPyHID->m_HidError,
+                            HIDError(iResult, szError).pythonExceptionArg());
       }
 
-    Py::List list(result);
-    for ( Py::List::size_type i = 0; i < (unsigned int)(result); ++i )
+    Py::List list(iResult);
+    for ( Py::List::size_type i = 0; i < (unsigned int)(iResult); ++i )
       list[i] = Py::Long(puiData[i]);
 
     delete [] puiData;
@@ -309,10 +397,15 @@ private :
     if ( long(timeout) < 0 || long(timeout) > 0xFFFF )
       throw Py::ValueError("waitDeviceReAdd() Timeout is out of range.");
 
-    bool bResult = m_hidDevice.waitDeviceReAdd(long(timeout));
+    int iResult = m_hidDevice.waitDeviceReAdd(long(timeout));
 
-    if ( !bResult )
-      throw Py::IOError("waitDeviceReAdd() Failed to wait for device.");
+    if ( iResult )
+      {
+        std::string szError;
+        genErrorMessage("waitDeviceReAdd", 0, iResult, szError);
+        throw Py::Exception(pPyHID->m_HidError,
+                            HIDError(iResult, szError).pythonExceptionArg());
+      }
 
     return Py::None();
   }
@@ -337,7 +430,7 @@ private :
     m_hidDevice.closeHID();
   }
 
-  static void init_type(void)
+  static void init_type()
   {
     behaviors().name("pyhidaccess");
     behaviors().doc("Raw HID access via Python");
@@ -364,7 +457,7 @@ private :
   {
     std::string name(name_.as_std_string("utf-8"));
     if ( name == "value" )
-      return m_value;
+      return this->m_value;
     return genericGetAttro(name_);
   }
 
@@ -373,38 +466,57 @@ private :
     std::string name(name_.as_std_string("utf-8"));
     if ( name == "value" )
       {
-        m_value = value;
+        this->m_value = value;
         return 0;
       }
-
     return genericSetAttro(name_, value);
   }
 };
 
-class pyhid_module : public Py::ExtensionModule<pyhid_module>
+pyhid_module::pyhid_module() : Py::ExtensionModule<pyhid_module>("pyhid"),
+                               m_HidError()
 {
-public:
-  pyhid_module() : Py::ExtensionModule<pyhid_module>("pyhid")
-  {
-    pyhidaccess::init_type();
-    initialize("Python HID access module");
-    Py::Dict d(moduleDictionary());
-    Py::Object x(pyhidaccess::type());
-    d["pyhidaccess"] = x;
-  }
+  m_HidError.init(*this, "HIDError");
 
-  virtual ~pyhid_module()
-  {
-  }
-};
+  pyhidaccess::init_type();
+  initialize("Python HID access module");
+  Py::Dict d(moduleDictionary());
+  Py::Object x(pyhidaccess::type());
+  d["pyhidaccess"] = x;
+  d["HIDError"] = m_HidError;
+
+  d["HID_LIBUSB_INVALID_ARGS"]    = Py::Int(HID_LIBUSB_INVALID_ARGS);
+  d["HID_LIBUSB_NO_DEVICE"]       = Py::Int(HID_LIBUSB_NO_DEVICE);
+  d["HID_LIBUSB_NO_DEVICE_OPEN"]  = Py::Int(HID_LIBUSB_NO_DEVICE_OPEN);
+  d["HID_LIBUSB_READ_ERROR"]      = Py::Int(HID_LIBUSB_READ_ERROR);
+  d["HID_LIBUSB_NO_UDEV"]         = Py::Int(HID_LIBUSB_NO_UDEV);
+  d["HID_LIBUSB_UDEV_MON_ERROR"]  = Py::Int(HID_LIBUSB_UDEV_MON_ERROR);
+  d["HID_LIBUSB_UDEV_TIMEOUT"]    = Py::Int(HID_LIBUSB_UDEV_TIMEOUT);
+  d["LIBUSB_SUCCESS"]             = Py::Int(LIBUSB_SUCCESS);
+  d["LIBUSB_ERROR_IO"]            = Py::Int(LIBUSB_ERROR_IO);
+  d["LIBUSB_ERROR_INVALID_PARAM"] = Py::Int(LIBUSB_ERROR_INVALID_PARAM);
+  d["LIBUSB_ERROR_ACCESS"]        = Py::Int(LIBUSB_ERROR_ACCESS);
+  d["LIBUSB_ERROR_NO_DEVICE"]     = Py::Int(LIBUSB_ERROR_NO_DEVICE);
+  d["LIBUSB_ERROR_NOT_FOUND"]     = Py::Int(LIBUSB_ERROR_NOT_FOUND);
+  d["LIBUSB_ERROR_BUSY"]          = Py::Int(LIBUSB_ERROR_BUSY);
+  d["LIBUSB_ERROR_TIMEOUT"]       = Py::Int(LIBUSB_ERROR_TIMEOUT);
+  d["LIBUSB_ERROR_OVERFLOW"]      = Py::Int(LIBUSB_ERROR_OVERFLOW);
+  d["LIBUSB_ERROR_PIPE"]          = Py::Int(LIBUSB_ERROR_PIPE);
+  d["LIBUSB_ERROR_INTERRUPTED"]   = Py::Int(LIBUSB_ERROR_INTERRUPTED);
+  d["LIBUSB_ERROR_NO_MEM"]        = Py::Int(LIBUSB_ERROR_NO_MEM);
+  d["LIBUSB_ERROR_NOT_SUPPORTED"] = Py::Int(LIBUSB_ERROR_NOT_SUPPORTED);
+  d["LIBUSB_ERROR_OTHER"]         = Py::Int(LIBUSB_ERROR_OTHER);
+}
+
+pyhid_module::~pyhid_module()
+{
+}
 
 #if defined( _WIN32 )
  #define EXPORT_SYMBOL __declspec( dllexport )
 #else
  #define EXPORT_SYMBOL
 #endif
-
-static pyhid_module *pPyHID;
 
 #if defined( PY3 )
 
