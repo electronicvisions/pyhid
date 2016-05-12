@@ -15,9 +15,8 @@ PYCXX_SRC  := ${PYCXX_PATH}/CXX/IndirectPythonInterface.cxx \
 PY_OBJ     := $(patsubst %.cpp, obj/%.o, $(notdir ${PY_SRC})) \
               $(patsubst %.cxx, obj/%.o, $(notdir ${PYCXX_SRC})) \
               obj/cxxextensions.o
-PY_LIBS    := $(shell python-config --libs) \
-              $(shell pkg-config libusb-1.0 --libs) -ludev
-PY_INC     := -I${PYCXX_PATH} $(shell python-config --includes) \
+PY_LIBS    := $(shell python2.7-config --libs) -ludev
+PY_INC     := -I${PYCXX_PATH} $(shell python2.7-config --includes) \
               $(shell pkg-config libusb-1.0 --cflags)
 
 .SUFFIXES: .c .o .h .cpp .hpp .cxx

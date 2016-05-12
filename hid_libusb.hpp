@@ -51,6 +51,7 @@
 #define HID_LIBUSB_NO_UDEV        -1004
 #define HID_LIBUSB_UDEV_MON_ERROR -1005
 #define HID_LIBUSB_UDEV_TIMEOUT   -1006
+#define HID_LIBUSB_NO_LIBUSB      -1007
 
 typedef struct hid_device_info
 {
@@ -75,6 +76,92 @@ typedef struct input_report
 
 #include <pthread.h>
 #include <libusb.h>
+
+class libusb_wrapper
+{
+private:
+  typedef int     (*libusbInit_t)(libusb_context **);
+  typedef void    (*libusbExit_t)(libusb_context *);
+  typedef ssize_t (*libusbGetDeviceList_t)(libusb_context *, libusb_device ***);
+  typedef void    (*libusbFreeDeviceList_t)(libusb_device **, int);
+  typedef int     (*libusbGetDeviceDescriptor_t)(libusb_device *,
+                                                 libusb_device_descriptor *);
+  typedef int     (*libusbGetActiveConfigDescriptor_t)(
+                              libusb_device *,
+                              struct libusb_config_descriptor **);
+  typedef int     (*libusbGetConfigDescriptor_t)(
+                              libusb_device *, uint8_t,
+                              struct libusb_config_descriptor **);
+  typedef void    (*libusbFreeConfigDescriptor_t)(
+                              struct libusb_config_descriptor *);
+  typedef int     (*libusbOpen_t)(libusb_device *, libusb_device_handle **);
+  typedef void    (*libusbClose_t)(libusb_device_handle *);
+  typedef uint8_t (*libusbGetBusNumber_t)(libusb_device *);
+  typedef uint8_t (*libusbGetDeviceAddress_t)(libusb_device *);
+  typedef int     (*libusbAttachKernelDriver_t)(libusb_device_handle *,
+                                                int);
+  typedef int     (*libusbDetachKernelDriver_t)(libusb_device_handle *,
+                                                int);
+  typedef int     (*libusbKernelDriverActive_t)(libusb_device_handle *,
+                                                int);
+  typedef int     (*libusbClaimInterface_t)(libusb_device_handle *, int);
+  typedef int     (*libusbReleaseInterface_t)(libusb_device_handle *, int);
+  typedef int     (*libusbGetStringDescriptorAscii_t)(libusb_device_handle *,
+                                                      uint8_t,
+                                                      unsigned char *, int);
+  typedef int     (*libusbHandleEvents_t)(libusb_context *);
+  typedef struct libusb_transfer * (*libusbAllocTransfer_t)(int);
+  typedef void    (*libusbFreeTransfer_t)(struct libusb_transfer *);
+  typedef int     (*libusbSubmitTransfer_t)(struct libusb_transfer *);
+  typedef int     (*libusbCancelTransfer_t)(struct libusb_transfer *);
+  typedef int     (*libusbControlTransfer_t)(libusb_device_handle *,
+                                             uint8_t, uint8_t, uint16_t,
+                                             uint16_t, unsigned char *,
+                                             uint16_t, unsigned int);
+  typedef int     (*libusbInterruptTransfer_t)(libusb_device_handle *,
+                                               unsigned char,
+                                               unsigned char *, int,
+                                               int *, unsigned int);
+  typedef const char * (*libusbStrerror_t)(enum libusb_error);
+
+  static const char *usbi_errors[];
+  static const char *libusb_strerror(enum libusb_error);
+
+  void *m_pLib;
+  void closeUSBLib();
+  libusb_wrapper();
+public:
+  ~libusb_wrapper();
+  static libusb_wrapper &getInstance();
+  bool loadUSBLib();
+
+  libusbInit_t                      libusbInit;
+  libusbExit_t                      libusbExit;
+  libusbGetDeviceList_t             libusbGetDeviceList;
+  libusbFreeDeviceList_t            libusbFreeDeviceList;
+  libusbGetDeviceDescriptor_t       libusbGetDeviceDescriptor;
+  libusbGetActiveConfigDescriptor_t libusbGetActiveConfigDescriptor;
+  libusbGetConfigDescriptor_t       libusbGetConfigDescriptor;
+  libusbFreeConfigDescriptor_t      libusbFreeConfigDescriptor;
+  libusbOpen_t                      libusbOpen;
+  libusbClose_t                     libusbClose;
+  libusbGetBusNumber_t              libusbGetBusNumber;
+  libusbGetDeviceAddress_t          libusbGetDeviceAddress;
+  libusbAttachKernelDriver_t        libusbAttachKernelDriver;
+  libusbDetachKernelDriver_t        libusbDetachKernelDriver;
+  libusbKernelDriverActive_t        libusbKernelDriverActive;
+  libusbClaimInterface_t            libusbClaimInterface;
+  libusbReleaseInterface_t          libusbReleaseInterface;
+  libusbGetStringDescriptorAscii_t  libusbGetStringDescriptorAscii;
+  libusbHandleEvents_t              libusbHandleEvents;
+  libusbAllocTransfer_t             libusbAllocTransfer;
+  libusbFreeTransfer_t              libusbFreeTransfer;
+  libusbSubmitTransfer_t            libusbSubmitTransfer;
+  libusbCancelTransfer_t            libusbCancelTransfer;
+  libusbControlTransfer_t           libusbControlTransfer;
+  libusbInterruptTransfer_t         libusbInterruptTransfer;
+  libusbStrerror_t                  libusbStrerror;
+};
 
 class hid_libusb
 {
