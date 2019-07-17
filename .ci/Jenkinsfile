@@ -1,0 +1,22 @@
+@Library("jenlib") _
+
+try {
+	inSingularity(app: "visionary-dls") {
+		runOnSlave(label: "frontend") {
+			wafSetup(projects: ["pyhid"])
+		}
+
+		stage("Build") {
+			onSlurmResource(partition: "jenkins") {
+				jesh("make -C pyhid/src/pyhid")
+			}
+		}
+	}
+} catch (Throwable t) {
+	notifyFailure(mattermostChannel: "#softies")
+	throw t
+}
+
+if (currentBuild.currentResult != "SUCCESS") {
+	notifyFailure(mattermostChannel: "#softies")
+}
