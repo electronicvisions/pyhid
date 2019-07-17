@@ -284,8 +284,9 @@ char *hid_libusb::getUSBString(libusb_device_handle *pDevHandle,
   if ( iLen < 0 )
     return 0;
 
-  char* szResult = new char[iLen];
+  char* szResult = new char[iLen+1];
   memcpy(szResult, szBuf, iLen);
+  szResult[iLen] = '\0';
   return szResult;
 }
 
