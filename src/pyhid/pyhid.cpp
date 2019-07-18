@@ -40,6 +40,8 @@
 #include "CXX/Objects.hxx"
 #include "CXX/Extensions.hxx"
 #include "pyhid.hpp"
+#include <sstream>
+#include <string>
 
 static pyhid_module *pPyHID;
 
@@ -206,11 +208,13 @@ protected :
 
   Py::Object pyhidaccess_openHID(const Py::Tuple &args, const Py::Dict &kwds)
   {
-    ::checkArgCount("openHID", 2, args, kwds);
+    ::addDefaultArg("openHID", 3, "serial", Py::None(), args, kwds);
+    ::checkArgCount("openHID", 3, args, kwds);
 
-    Py::List keys(2);
+    Py::List keys(3);
     keys[0] = Py::String("vid");
     keys[1] = Py::String("pid");
+    keys[2] = Py::String("serial");
 
     Py::Dict d(kwds);
     ::mergeArgs("openHID", keys, args, d);
@@ -218,14 +222,27 @@ protected :
     Py::Long vid(d["vid"]);
     Py::Long pid(d["pid"]);
 
-    int iResult = m_hidDevice.openHID(long(vid), long(pid));
+    int iResult;
+    if (Py::Object(d["serial"]).isNone()) {
+        iResult = m_hidDevice.openHID(long(vid), long(pid));
+    } else {
+        // python-CXX has no unsigned long, fall back to hex string
+        Py::String serial(d["serial"]);
+        unsigned long lSerial = std::stoul(serial, nullptr, 16);
+        std::ostringstream oss;
+
+        // uppercase is required for comparison in openHID()
+        oss << std::uppercase << std::hex << lSerial;
+
+        iResult = m_hidDevice.openHID(long(vid), long(pid), oss.str().c_str());
+    }
     if ( iResult < 0 )
-      {
+    {
         std::string szError;
         genErrorMessage("openHID", 0, iResult, szError);
         throw Py::Exception(pPyHID->m_HidError,
                             HIDError(iResult, szError).pythonExceptionArg());
-      }
+    }
 
     return Py::None();
   }
