@@ -38,7 +38,7 @@
 #ifndef __CXX_INDIRECT_PYTHON_INTERFACE__HXX__
 #define __CXX_INDIRECT_PYTHON_INTERFACE__HXX__
 
-#include "CXX/WrapPython.h"
+#include "pycxx/python2/CXX/WrapPython.h"
 
 namespace Py
 {

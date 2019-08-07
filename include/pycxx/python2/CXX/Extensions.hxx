@@ -45,11 +45,11 @@
 #pragma warning( disable: 4786 )
 #endif
 
-#include "CXX/WrapPython.h"
-#include "CXX/Version.hxx"
-#include "CXX/Config.hxx"
-#include "CXX/CxxDebug.hxx"
-#include "CXX/Objects.hxx"
+#include "pycxx/python2/CXX/WrapPython.h"
+#include "pycxx/python2/CXX/Version.hxx"
+#include "pycxx/python2/CXX/Config.hxx"
+#include "pycxx/python2/CXX/CxxDebug.hxx"
+#include "pycxx/python2/CXX/Objects.hxx"
 
 extern "C" { extern PyObject py_object_initializer; }
 
@@ -179,11 +179,11 @@ namespace Py
     };
 } // Namespace Py
 
-#include "CXX/ExtensionModule.hxx"
-#include "CXX/PythonType.hxx"
-#include "CXX/ExtensionTypeBase.hxx"
-#include "CXX/ExtensionOldType.hxx"
-#include "CXX/ExtensionType.hxx"
+#include "pycxx/python2/CXX/ExtensionModule.hxx"
+#include "pycxx/python2/CXX/PythonType.hxx"
+#include "pycxx/python2/CXX/ExtensionTypeBase.hxx"
+#include "pycxx/python2/CXX/ExtensionOldType.hxx"
+#include "pycxx/python2/CXX/ExtensionType.hxx"
 
 // End of CXX_Extensions.h
 #endif

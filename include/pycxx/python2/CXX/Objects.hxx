@@ -38,10 +38,10 @@
 #ifndef __CXX_Objects__h
 #define __CXX_Objects__h
 
-#include "CXX/WrapPython.h"
-#include "CXX/Version.hxx"
-#include "CXX/Config.hxx"
-#include "CXX/Exception.hxx"
+#include "pycxx/python2/CXX/WrapPython.h"
+#include "pycxx/python2/CXX/Version.hxx"
+#include "pycxx/python2/CXX/Config.hxx"
+#include "pycxx/python2/CXX/Exception.hxx"
 
 #include <iostream>
 #include STR_STREAM

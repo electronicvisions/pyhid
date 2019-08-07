@@ -37,7 +37,7 @@
 // ----------------------------------------------------------------
 // 0.1       | hartmann   | 19 Jun 2013   |  initial version
 // ----------------------------------------------------------------
-#include "CXX/Extensions.hxx"
+#include "pycxx/python2/CXX/Extensions.hxx"
 
 class pyhid_module : public Py::ExtensionModule<pyhid_module>
 {

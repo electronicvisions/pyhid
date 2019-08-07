@@ -35,7 +35,7 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "CXX/IndirectPythonInterface.hxx"
+#include "pycxx/python2/CXX/IndirectPythonInterface.hxx"
 
 namespace Py
 {

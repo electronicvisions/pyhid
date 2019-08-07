@@ -35,7 +35,7 @@
 //
 //---------------------------------------------------------------------------*/
 
-#include "CXX/WrapPython.h"
+#include "pycxx/python2/CXX/WrapPython.h"
 
 #ifdef __cplusplus
 extern "C" 

@@ -37,7 +37,7 @@
 // ----------------------------------------------------------------
 // 0.1       | hartmann   | 19 Jun 2013   |  initial version
 // ----------------------------------------------------------------
-#include "hid_libusb.hpp"
+#include "pyhid/hid_libusb.hpp"
 
 #include <libudev.h>
 #include <stdio.h>

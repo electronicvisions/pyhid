@@ -35,7 +35,7 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "CXX/Objects.hxx"
+#include "pycxx/python2/CXX/Objects.hxx"
 namespace Py {
 
 Py_UNICODE unicode_null_string[1] = { 0 };

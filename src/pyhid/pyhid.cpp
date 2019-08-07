@@ -37,15 +37,15 @@
 // ----------------------------------------------------------------
 // 0.1       | hartmann   | 19 Jun 2013   |  initial version
 // ----------------------------------------------------------------
-#include "CXX/Objects.hxx"
-#include "CXX/Extensions.hxx"
-#include "pyhid.hpp"
+#include "pycxx/python2/CXX/Objects.hxx"
+#include "pycxx/python2/CXX/Extensions.hxx"
+#include "pyhid/pyhid.hpp"
 #include <sstream>
 #include <string>
 
 static pyhid_module *pPyHID;
 
-#include "hid_libusb.hpp"
+#include "pyhid/hid_libusb.hpp"
 
 #ifdef _MSC_VER
  #pragma warning(disable: 4786)
