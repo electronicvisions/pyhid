@@ -331,7 +331,7 @@ bool hid_libusb::findUdevPath()
         {
           if ( !strcmp(szVID, this->m_szVendorID) &&
                !strcmp(szPID, this->m_szProductID) &&
-               !strcmp(szBus, this->m_szBusNum) && 
+               !strcmp(szBus, this->m_szBusNum) &&
                !strcmp(szDev, this->m_szDevAddr) )
             {
               this->m_szUdevPath = new char[strlen(szPath)+1];
@@ -737,19 +737,19 @@ int hid_libusb::readFeature(uint8_t *puiData, size_t uiLength,
   return iResult;
 }
 
-int hid_libusb::openHID(const uint16_t uiVendorID, const uint16_t uiProductID,
-                        const char *szSerial)
+int hid_libusb::openHID(const uint16_t vid, const uint16_t pid,
+                        std::string const& serial)
 {
-  int iResult = this->enumerateHID(uiVendorID, uiProductID);
+  int iResult = this->enumerateHID(vid, pid);
   if ( iResult < 0 )
     return iResult;
 
   hid_device_info_t *pDevice = this->m_pDevices;
   while ( pDevice )
     {
-      if ( szSerial )
+      if ( !serial.empty() )
         {
-          if ( !strcmp(szSerial, pDevice->szSerial) )
+          if ( !strcmp(serial.c_str(), pDevice->szSerial) )
             break;
         }
       else
@@ -1081,8 +1081,23 @@ void hid_libusb::getErrorString(const int iError,
           break;
         case HID_LIBUSB_NO_LIBUSB :
           szError += "Failed to load libusb-1.0.so.0.";
+          break;
         default :
           szError += "Unknown error.";
         }
     }
+}
+
+void hid_libusb::writeHID(std::vector<uint8_t> const& data)
+{
+	writeHID(data.data(), data.size());
+}
+
+
+std::vector<uint8_t> hid_libusb::readHID(size_t const size, int const timeout)
+{
+	std::vector<uint8_t> data;
+	data.reserve(size);
+	readHID(data.data(), size, timeout);
+	return data;
 }

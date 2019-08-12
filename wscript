@@ -15,6 +15,7 @@ def configure(conf):
     conf.load('compiler_cxx')
     conf.load('test_base')
     conf.load('python')
+    conf.load('genpybind')
     conf.check_python_headers()
     conf.check_cfg(package='libusb-1.0', args=['--cflags', '--libs'], uselib_store='USB1')
 
@@ -25,16 +26,19 @@ def build(bld):
         export_includes = 'include',
     )
 
+    bld.shlib(
+        target          = 'hid_libusb',
+        features        = 'cxx',
+        source          = 'src/pyhid/hid_libusb.cpp',
+        use             = 'pyhid_inc USB1',
+        install_path    = '${PREFIX}/lib',
+    )
+
     bld(
-        features = 'cxx cxxshlib pyext',
+        features = 'genpybind cxx cxxshlib pyext',
         target = 'pyhid',
-        source = [ "src/pyhid/hid_libusb.cpp",
-                   "src/pyhid/pyhid.cpp",
-                   "src/pycxx/python2/cxxextensions.c",
-                   "src/pycxx/python2/IndirectPythonInterface.cxx",
-                   "src/pycxx/python2/cxx_extensions.cxx",
-                   "src/pycxx/python2/cxxsupport.cxx" ],
-        use = 'pyhid_inc USB1',
+        source = 'include/pyhid/genpybind.h',
+        use = 'hid_libusb pyhid_inc',
         install_path = "${PREFIX}/lib",
     )
 

@@ -43,6 +43,8 @@
 #include <stdint.h>
 #include <cstddef>
 #include <string>
+#include <vector>
+#include <genpybind.h>
 
 #define HID_LIBUSB_INVALID_ARGS   -1000
 #define HID_LIBUSB_NO_DEVICE      -1001
@@ -163,7 +165,7 @@ public:
   libusbStrerror_t                  libusbStrerror;
 };
 
-class hid_libusb
+class GENPYBIND(visible, expose_as(pyhidaccess)) hid_libusb
 {
 private:
 
@@ -206,16 +208,18 @@ public:
   virtual ~hid_libusb();
   virtual int enumerateHID(const uint16_t, const uint16_t);
   virtual void freeHIDEnumeration();
-  virtual int writeHID(const uint8_t *, size_t, const bool bFeature = false);
+  void writeHID(std::vector<uint8_t> const&);
+  virtual int writeHID(const uint8_t *, size_t, const bool bFeature = false) GENPYBIND(hidden);
+  std::vector<uint8_t> readHID(size_t size, int timeout = -1);
   virtual int readHID(uint8_t *puiData, size_t uiLength,
-                      int iMilliseconds = -1);
+                      int iMilliseconds = -1) GENPYBIND(hidden);
   virtual int readFeature(uint8_t *puiData, size_t uiLength,
-                          int iMilliseconds = 0);
-  virtual int openHID(const uint16_t, const uint16_t, const char *szSerial = 0);
+                          int iMilliseconds = 0) GENPYBIND(hidden);
+  virtual int openHID(const uint16_t vid, const uint16_t pid, std::string const& serial = "");
   virtual void closeHID();
-  virtual int openHIDDevice(const hid_device_info_t *);
+  virtual int openHIDDevice(const hid_device_info_t *) GENPYBIND(hidden);
   virtual int waitDeviceReAdd(const uint16_t uiTimeout = 0);
-  static void getErrorString(const int, std::string &);
+  static void getErrorString(const int, std::string &) GENPYBIND(hidden);
 };
 
 #endif
