@@ -208,7 +208,7 @@ public:
   virtual ~hid_libusb();
   virtual int enumerateHID(const uint16_t, const uint16_t);
   virtual void freeHIDEnumeration();
-  void writeHID(std::vector<uint8_t> const&);
+  int writeHID(std::vector<uint8_t> const&);
   virtual int writeHID(const uint8_t *, size_t, const bool bFeature = false) GENPYBIND(hidden);
   std::vector<uint8_t> readHID(size_t size, int timeout = -1);
   virtual int readHID(uint8_t *puiData, size_t uiLength,

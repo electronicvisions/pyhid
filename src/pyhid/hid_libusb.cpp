@@ -46,6 +46,7 @@
 #include <time.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <stdexcept>
 
 libusb_context *hid_libusb::m_pContext = 0;
 
@@ -1088,9 +1089,15 @@ void hid_libusb::getErrorString(const int iError,
     }
 }
 
-void hid_libusb::writeHID(std::vector<uint8_t> const& data)
+int hid_libusb::writeHID(std::vector<uint8_t> const& data)
 {
-	writeHID(data.data(), data.size());
+	int ret = writeHID(data.data(), data.size());
+	if (ret < 0) {
+		std::string message;
+		getErrorString(ret, message);
+		throw std::runtime_error(message);
+	}
+	return ret;
 }
 
 
@@ -1098,6 +1105,11 @@ std::vector<uint8_t> hid_libusb::readHID(size_t const size, int const timeout)
 {
 	std::vector<uint8_t> data;
 	data.reserve(size);
-	readHID(data.data(), size, timeout);
+	int ret = readHID(data.data(), size, timeout);
+	if (ret < 0) {
+		std::string message;
+		getErrorString(ret, message);
+		throw std::runtime_error(message);
+	}
 	return data;
 }
