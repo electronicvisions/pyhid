@@ -1103,13 +1103,14 @@ int hid_libusb::writeHID(std::vector<uint8_t> const& data)
 
 std::vector<uint8_t> hid_libusb::readHID(size_t const size, int const timeout)
 {
-	std::vector<uint8_t> data;
-	data.reserve(size);
+	std::vector<uint8_t> data(size);
 	int ret = readHID(data.data(), size, timeout);
 	if (ret < 0) {
 		std::string message;
 		getErrorString(ret, message);
 		throw std::runtime_error(message);
+	} else {
+		data.resize(ret);
 	}
 	return data;
 }
