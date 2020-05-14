@@ -252,11 +252,17 @@ libusb_wrapper::~libusb_wrapper()
 hid_libusb::hid_libusb() : m_pDeviceHandle(0),
                            m_pInputReports(0),
                            m_bShutdownThread(false),
+                           m_uiMaxPacketSize(0),
                            m_iInputEndpoint(0),
                            m_iOutputEndpoint(0),
+                           m_iInterface(0),
                            m_bOpenDevice(false),
                            m_bDetachedKernel(false),
                            m_szUdevPath(0),
+                           m_szVendorID(),
+                           m_szProductID(),
+                           m_szBusNum(),
+                           m_szDevAddr(),
                            m_pDevices(0),
                            m_pUdev(udev_new()),
                            m_pTransfer(0)
@@ -902,7 +908,7 @@ int hid_libusb::openHIDDevice(const hid_device_info_t *pDeviceToOpen)
                                       pInterfaceDesc->bInterfaceNumber);
                       if ( iResult < 0 )
                         {
-                          if ( this-m_bDetachedKernel )
+                          if ( this->m_bDetachedKernel )
                             libusbWrapper.libusbAttachKernelDriver(
                                   this->m_pDeviceHandle,
                                   pInterfaceDesc->bInterfaceNumber);
