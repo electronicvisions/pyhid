@@ -3,4 +3,5 @@
 wafDefaultPipeline(projects: ["pyhid"],
                    container: [app: "visionary-dls"],
                    notificationChannel: "#softies",
-                   warningsIgnorePattern: ".*")
+                   warningsIgnorePattern: ".*",
+                   enableClangFormat: false)
