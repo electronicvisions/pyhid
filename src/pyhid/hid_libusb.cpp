@@ -623,6 +623,8 @@ int hid_libusb::writeHID(const uint8_t *puiData, size_t uiLength,
     {
       const uint16_t uiRequestType = ( bFeature ) ?
         0x300 : ( 0x200 | uiReportNumber );
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
       int iResult = libusbWrapper.libusbControlTransfer(
                           this->m_pDeviceHandle,
                           LIBUSB_REQUEST_TYPE_CLASS |
@@ -634,6 +636,7 @@ int hid_libusb::writeHID(const uint8_t *puiData, size_t uiLength,
                           (unsigned char *)puiData,
                           uiLength,
                           1000);
+#pragma GCC diagnostic pop
 
       if ( iResult < 0 )
         return iResult;
@@ -729,6 +732,8 @@ int hid_libusb::readFeature(uint8_t *puiData, size_t uiLength,
   if ( ! this->m_bOpenDevice )
     return HID_LIBUSB_NO_DEVICE_OPEN;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
   int iResult = libusb_wrapper::getInstance().libusbControlTransfer(
                        this->m_pDeviceHandle,
                        LIBUSB_ENDPOINT_IN |
@@ -740,6 +745,7 @@ int hid_libusb::readFeature(uint8_t *puiData, size_t uiLength,
                        puiData,
                        uiLength,
                        iMilliseconds);
+#pragma GCC diagnostic pop
 
   return iResult;
 }
