@@ -39,7 +39,6 @@ def build(bld):
         target = 'pyhid',
         source = 'include/pyhid/genpybind.h',
         use = 'hid_libusb pyhid_inc',
-        install_path = "${PREFIX}/lib",
     )
 
     bld.add_post_fun(summary)
